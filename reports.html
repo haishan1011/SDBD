@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>统计报表</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        html, body { 
+            height: 100%; 
+            margin: 0;
+            padding: 0;
+            background: #f5f6fa;
+        }
+        .container {
+            padding: 20px;
+        }
+        .page-title {
+            margin: 0 0 20px 0;
+            padding: 10px 0;
+            font-size: 24px;
+            color: #333;
+            border-bottom: 2px solid #1a73e8;
+        }
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            height: 400px;
+            width: 100%;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-label {
+            color: #666;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 120px;
+            background: #fff;
+        }
+        .filter-select:focus {
+            border-color: #1a73e8;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+        }
+        .filter-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #1a73e8;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .filter-btn:hover {
+            background: #1557b0;
+        }
+        .filter-btn.reset {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+        .filter-btn.reset:hover {
+            background: #e9ecef;
+        }
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .filter-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #e3f2fd;
+            border-radius: 16px;
+            font-size: 12px;
+            color: #1a73e8;
+        }
+        .filter-tag .remove {
+            cursor: pointer;
+            color: #666;
+            font-weight: bold;
+        }
+        .filter-tag .remove:hover {
+            color: #dc3545;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a73e8;
+            margin: 10px 0;
+        }
+        .summary-label {
+            color: #666;
+            font-size: 14px;
+        }
+        .trend-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        .trend-up {
+            color: #28a745;
+        }
+        .trend-down {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">统计报表</h1>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <span class="filter-label">时间范围：</span>
+                <select class="filter-select" id="timeRange">
+                    <option value="today">今日</option>
+                    <option value="yesterday">昨日</option>
+                    <option value="week">本周</option>
+                    <option value="lastWeek">上周</option>
+                    <option value="month">本月</option>
+                    <option value="lastMonth">上月</option>
+                    <option value="quarter">本季度</option>
+                    <option value="year">本年</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div class="filter-group" id="customDateRange" style="display: none;">
+                <input type="date" class="filter-select" id="startDate">
+                <span>至</span>
+                <input type="date" class="filter-select" id="endDate">
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">数据类型：</span>
+                <select class="filter-select" id="dataType">
+                    <option value="all">全部数据</option>
+                    <option value="vehicle">车辆数据</option>
+                    <option value="driver">驾驶员数据</option>
+                    <option value="warning">告警数据</option>
+                    <option value="maintenance">维护数据</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">区域：</span>
+                <select class="filter-select" id="areaFilter">
+                    <option value="all">全部区域</option>
+                    <option value="武侯区">武侯区</option>
+                    <option value="锦江区">锦江区</option>
+                    <option value="青羊区">青羊区</option>
+                    <option value="金牛区">金牛区</option>
+                    <option value="成华区">成华区</option>
+                </select>
+            </div>
+            <button class="filter-btn" onclick="applyFilters()">应用筛选</button>
+            <button class="filter-btn reset" onclick="resetFilters()">重置</button>
+        </div>
+
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="summary-label">总行驶里程</div>
+                <div class="summary-value">123,456 km</div>
+                <div class="trend-indicator trend-up">
+                    <span>↑</span>
+                    <span>12.5% 较上期</span>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">总油耗</div>
+                <div class="summary-value">5,678 L</div>
+                <div class="trend-indicator trend-down">
+                    <span>↓</span>
+                    <span>5.2% 较上期</span>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">告警次数</div>
+                <div class="summary-value">89</div>
+                <div class="trend-indicator trend-down">
+                    <span>↓</span>
+                    <span>8.7% 较上期</span>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">运营效率</div>
+                <div class="summary-value">92.5%</div>
+                <div class="trend-indicator trend-up">
+                    <span>↑</span>
+                    <span>3.2% 较上期</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-grid">
+            <div class="chart-card">
+                <h3>车辆运行状态分布</h3>
+                <div class="chart-container" id="vehicleStatusChart"></div>
+            </div>
+            <div class="chart-card">
+                <h3>驾驶员工作状态分布</h3>
+                <div class="chart-container" id="driverStatusChart"></div>
+            </div>
+            <div class="chart-card">
+                <h3>每日里程统计</h3>
+                <div class="chart-container" id="dailyMileageChart"></div>
+            </div>
+            <div class="chart-card">
+                <h3>告警类型分布</h3>
+                <div class="chart-container" id="warningTypeChart"></div>
+            </div>
+            <div class="chart-card full-width">
+                <h3>车辆运营趋势分析</h3>
+                <div class="chart-container" id="operationTrendChart"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 筛选状态对象
+        let filterState = {
+            timeRange: 'today',
+            startDate: null,
+            endDate: null,
+            dataType: 'all',
+            area: 'all'
+        };
+
+        // 设置筛选事件监听
+        function setupFilters() {
+            // 时间范围选择
+            document.getElementById('timeRange').addEventListener('change', function() {
+                const customDateRange = document.getElementById('customDateRange');
+                if (this.value === 'custom') {
+                    customDateRange.style.display = 'flex';
+                } else {
+                    customDateRange.style.display = 'none';
+                    filterState.timeRange = this.value;
+                    updateDateRange(this.value);
+                }
+            });
+
+            // 自定义日期选择
+            document.getElementById('startDate').addEventListener('change', function() {
+                filterState.startDate = this.value;
+            });
+            document.getElementById('endDate').addEventListener('change', function() {
+                filterState.endDate = this.value;
+            });
+
+            // 数据类型选择
+            document.getElementById('dataType').addEventListener('change', function() {
+                filterState.dataType = this.value;
+            });
+
+            // 区域选择
+            document.getElementById('areaFilter').addEventListener('change', function() {
+                filterState.area = this.value;
+            });
+        }
+
+        // 更新日期范围
+        function updateDateRange(timeRange) {
+            const now = new Date();
+            let startDate, endDate;
+
+            switch (timeRange) {
+                case 'today':
+                    startDate = now;
+                    endDate = now;
+                    break;
+                case 'yesterday':
+                    startDate = new Date(now.setDate(now.getDate() - 1));
+                    endDate = startDate;
+                    break;
+                case 'week':
+                    startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+                    endDate = new Date(now.setDate(now.getDate() + 6));
+                    break;
+                case 'lastWeek':
+                    startDate = new Date(now.setDate(now.getDate() - now.getDay() - 7));
+                    endDate = new Date(now.setDate(now.getDate() + 6));
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    break;
+                case 'lastMonth':
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                    break;
+                case 'quarter':
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                    endDate = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    endDate = new Date(now.getFullYear(), 11, 31);
+                    break;
+            }
+
+            filterState.startDate = startDate;
+            filterState.endDate = endDate;
+        }
+
+        // 应用筛选
+        function applyFilters() {
+            // 更新图表数据
+            updateCharts();
+            // 更新筛选标签
+            updateFilterTags();
+        }
+
+        // 重置筛选
+        function resetFilters() {
+            filterState = {
+                timeRange: 'today',
+                startDate: null,
+                endDate: null,
+                dataType: 'all',
+                area: 'all'
+            };
+
+            // 重置表单
+            document.getElementById('timeRange').value = 'today';
+            document.getElementById('customDateRange').style.display = 'none';
+            document.getElementById('dataType').value = 'all';
+            document.getElementById('areaFilter').value = 'all';
+
+            // 更新图表和标签
+            updateCharts();
+            updateFilterTags();
+        }
+
+        // 更新筛选标签
+        function updateFilterTags() {
+            const container = document.querySelector('.active-filters') || 
+                document.createElement('div');
+            container.className = 'active-filters';
+            
+            const tags = [];
+            
+            // 添加时间范围标签
+            if (filterState.timeRange === 'custom') {
+                tags.push({
+                    label: `时间范围: ${filterState.startDate} 至 ${filterState.endDate}`,
+                    type: 'timeRange'
+                });
+            } else {
+                const timeRangeLabels = {
+                    today: '今日',
+                    yesterday: '昨日',
+                    week: '本周',
+                    lastWeek: '上周',
+                    month: '本月',
+                    lastMonth: '上月',
+                    quarter: '本季度',
+                    year: '本年'
+                };
+                tags.push({
+                    label: `时间范围: ${timeRangeLabels[filterState.timeRange]}`,
+                    type: 'timeRange'
+                });
+            }
+
+            // 添加数据类型标签
+            if (filterState.dataType !== 'all') {
+                const dataTypeLabels = {
+                    vehicle: '车辆数据',
+                    driver: '驾驶员数据',
+                    warning: '告警数据',
+                    maintenance: '维护数据'
+                };
+                tags.push({
+                    label: `数据类型: ${dataTypeLabels[filterState.dataType]}`,
+                    type: 'dataType'
+                });
+            }
+
+            // 添加区域标签
+            if (filterState.area !== 'all') {
+                tags.push({
+                    label: `区域: ${filterState.area}`,
+                    type: 'area'
+                });
+            }
+
+            // 生成标签HTML
+            container.innerHTML = tags.map(tag => `
+                <div class="filter-tag">
+                    ${tag.label}
+                    <span class="remove" onclick="removeFilter('${tag.type}')">&times;</span>
+                </div>
+            `).join('');
+
+            // 添加到页面
+            const filterBar = document.querySelector('.filter-bar');
+            if (!document.querySelector('.active-filters')) {
+                filterBar.insertAdjacentElement('afterend', container);
+            }
+        }
+
+        // 移除筛选标签
+        function removeFilter(type) {
+            switch (type) {
+                case 'timeRange':
+                    filterState.timeRange = 'today';
+                    filterState.startDate = null;
+                    filterState.endDate = null;
+                    document.getElementById('timeRange').value = 'today';
+                    document.getElementById('customDateRange').style.display = 'none';
+                    break;
+                case 'dataType':
+                    filterState.dataType = 'all';
+                    document.getElementById('dataType').value = 'all';
+                    break;
+                case 'area':
+                    filterState.area = 'all';
+                    document.getElementById('areaFilter').value = 'all';
+                    break;
+            }
+            
+            updateCharts();
+            updateFilterTags();
+        }
+
+        // 初始化所有图表
+        function initCharts() {
+            initVehicleStatusChart();
+            initDriverStatusChart();
+            initDailyMileageChart();
+            initWarningTypeChart();
+            initOperationTrendChart();
+        }
+
+        // 车辆运行状态分布图
+        function initVehicleStatusChart() {
+            const chart = echarts.init(document.getElementById('vehicleStatusChart'));
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    right: 10,
+                    top: 'center'
+                },
+                series: [{
+                    name: '车辆状态',
+                    type: 'pie',
+                    radius: ['50%', '70%'],
+                    avoidLabelOverlap: false,
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '20',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: [
+                        { value: 150, name: '正常运行' },
+                        { value: 30, name: '维修中' },
+                        { value: 15, name: '告警状态' },
+                        { value: 5, name: '离线' }
+                    ]
+                }]
+            };
+            chart.setOption(option);
+        }
+
+        // 驾驶员工作状态分布图
+        function initDriverStatusChart() {
+            const chart = echarts.init(document.getElementById('driverStatusChart'));
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    right: 10,
+                    top: 'center'
+                },
+                series: [{
+                    name: '驾驶员状态',
+                    type: 'pie',
+                    radius: ['50%', '70%'],
+                    avoidLabelOverlap: false,
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '20',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: [
+                        { value: 140, name: '在岗' },
+                        { value: 40, name: '休息' },
+                        { value: 15, name: '疲劳驾驶' },
+                        { value: 5, name: '请假' }
+                    ]
+                }]
+            };
+            chart.setOption(option);
+        }
+
+        // 每日里程统计图
+        function initDailyMileageChart() {
+            const chart = echarts.init(document.getElementById('dailyMileageChart'));
+            const option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '里程(km)'
+                },
+                series: [{
+                    data: [820, 932, 901, 934, 1290, 1330, 1320],
+                    type: 'line',
+                    smooth: true,
+                    areaStyle: {}
+                }]
+            };
+            chart.setOption(option);
+        }
+
+        // 告警类型分布图
+        function initWarningTypeChart() {
+            const chart = echarts.init(document.getElementById('warningTypeChart'));
+            const option = {
+                tooltip: {
+                    trigger: 'item'
+                },
+                legend: {
+                    top: '5%',
+                    left: 'center'
+                },
+                series: [{
+                    name: '告警类型',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '20',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: [
+                        { value: 35, name: '超速' },
+                        { value: 25, name: '疲劳驾驶' },
+                        { value: 20, name: '急刹车' },
+                        { value: 15, name: '偏离路线' },
+                        { value: 5, name: '其他' }
+                    ]
+                }]
+            };
+            chart.setOption(option);
+        }
+
+        // 车辆运营趋势分析图
+        function initOperationTrendChart() {
+            const chart = echarts.init(document.getElementById('operationTrendChart'));
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        crossStyle: {
+                            color: '#999'
+                        }
+                    }
+                },
+                toolbox: {
+                    feature: {
+                        dataView: { show: true, readOnly: false },
+                        magicType: { show: true, type: ['line', 'bar'] },
+                        restore: { show: true },
+                        saveAsImage: { show: true }
+                    }
+                },
+                legend: {
+                    data: ['运营里程', '油耗', '运营效率']
+                },
+                xAxis: [{
+                    type: 'category',
+                    data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                }],
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '里程/油耗',
+                        min: 0,
+                        max: 250,
+                        interval: 50
+                    },
+                    {
+                        type: 'value',
+                        name: '效率',
+                        min: 0,
+                        max: 100,
+                        interval: 20,
+                        axisLabel: {
+                            formatter: '{value} %'
+                        }
+                    }
+                ],
+                series: [
+                    {
+                        name: '运营里程',
+                        type: 'bar',
+                        data: [120, 132, 101, 134, 90, 230, 210, 182, 191, 234, 290, 330]
+                    },
+                    {
+                        name: '油耗',
+                        type: 'bar',
+                        data: [45, 52, 42, 54, 38, 88, 77, 66, 73, 91, 107, 123]
+                    },
+                    {
+                        name: '运营效率',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        data: [82, 85, 88, 87, 86, 92, 91, 89, 88, 90, 93, 95]
+                    }
+                ]
+            };
+            chart.setOption(option);
+        }
+
+        // 监听窗口大小变化，调整图表大小
+        window.addEventListener('resize', function() {
+            const charts = document.querySelectorAll('.chart-container');
+            charts.forEach(container => {
+                const chart = echarts.getInstanceByDom(container);
+                if (chart) {
+                    chart.resize();
+                }
+            });
+        });
+
+        // 初始化所有图表
+        window.onload = function() {
+            setupFilters();
+            initCharts();
+            updateFilterTags();
+        };
+    </script>
+</body>
+</html> 

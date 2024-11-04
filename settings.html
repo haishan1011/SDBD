@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>系统设置</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .settings-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .settings-menu {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .menu-item {
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .menu-item:hover {
+            background: #f5f5f5;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+            color: white;
+        }
+
+        .settings-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+        }
+
+        .logo-upload {
+            border: 2px dashed #ddd;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            background: #fafafa;
+        }
+
+        .logo-preview {
+            margin: 20px 0;
+        }
+
+        .logo-preview img {
+            max-width: 200px;
+            max-height: 60px;
+            border: 1px solid #eee;
+            padding: 5px;
+            background: white;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+
+        .message {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .message.success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+
+        .message.error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+
+        #uploadStatus {
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .logo-settings {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo-preview {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px dashed #ddd;
+            text-align: center;
+            background: #f8f9fa;
+        }
+
+        .logo-preview img {
+            max-width: 200px;
+            max-height: 60px;
+            object-fit: contain;
+        }
+
+        .file-input-wrapper {
+            margin-top: 10px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #40a9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <!-- 左侧菜单 -->
+        <div class="settings-menu">
+            <div class="menu-item active" onclick="showSection('basic')">基本设置</div>
+            <div class="menu-item" onclick="showSection('map')">地图配置</div>
+            <div class="menu-item" onclick="showSection('alarm')">告警设置</div>
+            <div class="menu-item" onclick="showSection('backup')">数据备份</div>
+        </div>
+
+        <!-- 右侧内容 -->
+        <div class="settings-content">
+            <!-- 消息提示 -->
+            <div id="message" class="message"></div>
+
+            <!-- 基本设置 -->
+            <div id="basic" class="settings-section">
+                <h2 class="section-title">基本设置</h2>
+                <div class="form-group">
+                    <label>系统名称</label>
+                    <input type="text" class="form-control" id="systemName" value="车辆监控系统">
+                </div>
+                <div class="logo-settings">
+                    <h3>系统Logo设置</h3>
+                    <div class="logo-preview">
+                        <img id="logoPreview" src="/images/default-logo.png" alt="系统Logo">
+                    </div>
+                    <div class="logo-controls">
+                        <form id="logoForm" enctype="multipart/form-data">
+                            <div class="file-input-wrapper">
+                                <button type="button" class="btn" onclick="document.getElementById('logoInput').click()">
+                                    选择Logo文件
+                                </button>
+                                <input type="file" 
+                                       id="logoInput" 
+                                       name="logo" 
+                                       accept="image/*" 
+                                       style="display: none;"
+                                       onchange="previewAndUploadLogo(this)">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="saveBasicSettings()">保存设置</button>
+            </div>
+
+            <!-- 其他设置部分... -->
+        </div>
+    </div>
+
+    <script>
+        // 显示设置部分
+        function showSection(sectionId) {
+            // 更新菜单状态
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.menu-item[onclick*="${sectionId}"]`).classList.add('active');
+
+            // 显示对应的设置区域
+            document.querySelectorAll('.settings-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId).style.display = 'block';
+        }
+
+        // 修改 logo 预览和上传函数
+        async function previewAndUploadLogo(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            
+            // 文件类型检查
+            if (!file.type.match('image.*')) {
+                alert('请选择图片文件');
+                return;
+            }
+
+            // 文��大小检查（限制为2MB）
+            if (file.size > 2 * 1024 * 1024) {
+                alert('图片大小不能超过2MB');
+                return;
+            }
+
+            // 预览
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('logoPreview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            // 准备上传
+            const formData = new FormData();
+            formData.append('logo', file);
+
+            try {
+                const response = await fetch('/api/upload-logo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('网络响应错误');
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 更新主页面的 logo
+                    window.parent.postMessage({
+                        type: 'logoUpdated',
+                        logo: result.path
+                    }, '*');
+                    
+                    alert('Logo更新成功');
+                } else {
+                    alert('上传失败：' + (result.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('上传Logo失败:', error);
+                alert('上传失败，请重试');
+            }
+        }
+
+        // 页面加载时获取当前 logo
+        async function loadCurrentLogo() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                if (config.logo && config.logo.path) {
+                    document.getElementById('logoPreview').src = config.logo.path + '?t=' + new Date().getTime();
+                }
+            } catch (error) {
+                console.error('加载当前Logo失败:', error);
+            }
+        }
+
+        // 页面加载时执行
+        document.addEventListener('DOMContentLoaded', loadCurrentLogo);
+
+        // 保存基本设置
+        async function saveBasicSettings() {
+            const settings = {
+                systemName: document.getElementById('systemName').value
+            };
+
+            try {
+                const response = await fetch('/api/settings/basic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('设置保存成功！', 'success');
+                } else {
+                    showMessage('保存失败：' + result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('保存失败，请重试', 'error');
+            }
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // 加载当前设置
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                
+                // 应用设置
+                document.getElementById('systemName').value = settings.systemName || '';
+                if (settings.logo) {
+                    document.getElementById('logoPreview').src = settings.logo;
+                }
+            } catch (error) {
+                showMessage('加载设置失败', 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            showSection('basic');
+        });
+    </script>
+</body>
+</html> 

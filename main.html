@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>川运蜀电北斗时空信息服务平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 200px;
+            background: rgba(0, 21, 41, 0.8);
+            color: #fff;
+            padding-top: 20px;
+            backdrop-filter: blur(10px);
+            height: calc(100vh - 80px);
+            margin-top: 80px;
+        }
+
+        .menu-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .menu-item:hover {
+            background: #1890ff;
+        }
+
+        .menu-item.active {
+            background: #1890ff;
+        }
+
+        /* 主内容区域样式 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-top: 80px; /* header高度 + 额外空间 */
+            background: rgba(255, 255, 255, 0.95);
+            height: calc(100vh - 80px);
+            border-radius: 8px 0 0 0;
+        }
+
+        /* iframe样式 */
+        #content-frame {
+            flex: 1;
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 加载动画样式 */
+        .page-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 10px;
+            color: #666;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .menu-icon {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .screen-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>');
+        }
+
+        .monitor-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M3 3h18v18H3V3zm16 16V5H5v14h14z"/></svg>');
+        }
+
+        .vehicles-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>');
+        }
+
+        .drivers-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+        }
+
+        .reports-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>');
+        }
+
+        .risk-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M12 2L1 21h22M12 6l7.53 13H4.47M11 10v4h2v-4m-2 6v2h2v-2"/></svg>');
+        }
+
+        .settings-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>');
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 修改头部布局样式 */
+        .main-header {
+            background: transparent;
+            padding: 0 40px;
+            height: 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .company-logo {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+
+        .platform-name {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .platform-name-cn {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 2px;
+            line-height: 1.2;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .platform-name-en {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .current-time {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+        }
+
+        .logout-btn {
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 修改原有的样式适应新布局 */
+        .sidebar {
+            height: calc(100vh - 60px);
+        }
+
+        .main-content {
+            height: calc(100vh - 60px);
+        }
+
+        .error-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .error-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-icon {
+            font-size: 20px;
+        }
+
+        .error-text {
+            color: #ff4d4f;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .menu-icon {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .screen-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>');
+        }
+
+        .monitor-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M3 3h18v18H3V3zm16 16V5H5v14h14z"/></svg>');
+        }
+
+        .vehicles-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>');
+        }
+
+        .drivers-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+        }
+
+        .reports-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>');
+        }
+
+        .risk-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M12 2L1 21h22M12 6l7.53 13H4.47M11 10v4h2v-4m-2 6v2h2v-2"/></svg>');
+        }
+
+        .settings-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>');
+        }
+
+        /* 修改 platform-name 相关样式 */
+        .platform-name {
+            display: flex;
+            flex-direction: column;
+            gap: 4px; /* 增加中英文间距 */
+            min-width: 600px; /* 确保容器足够宽 */
+        }
+
+        .platform-name-cn {
+            font-size: 28px; /* 增大中文字号 */
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 4px; /* 增加字间距 */
+            line-height: 1.3;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            white-space: nowrap; /* 防止文字换行 */
+        }
+
+        .platform-name-en {
+            font-size: 14px; /* 增大英文字号 */
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 1px;
+            line-height: 1.2;
+            white-space: nowrap; /* 防止文字换行 */
+            width: 100%; /* 确保与中文等宽 */
+        }
+
+        /* 调整 header-left 的布局 */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px; /* 增加 logo 和文字间距 */
+            flex: 1; /* 允许容器伸展 */
+            max-width: 1000px; /* 限制最大宽度 */
+        }
+
+        .company-logo {
+            height: 45px; /* 稍微增大 logo */
+            width: auto;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 添加头部 -->
+    <header class="main-header">
+        <div class="header-left">
+            <img src="image/7111c83385e6d206a66cc9d63f4b7cd.png" alt="公司标志" class="company-logo">
+            <div class="platform-name">
+                <div class="platform-name-cn">川运蜀电北斗时空信息服务平台</div>
+                <div class="platform-name-en">Sichuan Transportation & Electric BeiDou Space-Time Information Service Platform</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="current-time" id="currentTime"></div>
+            <div class="user-info">
+                <div class="user-icon"></div>
+                <span id="userName">管理员</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">退出登录</button>
+        </div>
+    </header>
+
+    <!-- 原有的侧边栏和主容域 -->
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="menu-item screen active" onclick="switchContent('screen.html', this)">
+                <i class="menu-icon">🖥️</i>
+                <span>监控大屏</span>
+            </div>
+            <div class="menu-item monitor" onclick="switchContent('index.html', this)">
+                <i class="menu-icon">🔍</i>
+                <span>实时监控</span>
+            </div>
+            <div class="menu-item vehicles" onclick="switchContent('vehicles.html', this)">
+                <i class="menu-icon">🚛</i>
+                <span>车辆管理</span>
+            </div>
+            <div class="menu-item drivers" onclick="switchContent('drivers.html', this)">
+                <i class="menu-icon">👨‍✈️</i>
+                <span>驾驶员管理</span>
+            </div>
+            <div class="menu-item reports" onclick="switchContent('reports.html', this)">
+                <i class="menu-icon">📊</i>
+                <span>统计报表</span>
+            </div>
+            <div class="menu-item risk" onclick="switchContent('risk.html', this)">
+                <i class="menu-icon">⚠️</i>
+                <span>车辆风险管控</span>
+            </div>
+            <div class="menu-item settings" onclick="switchContent('settings.html', this)">
+                <i class="menu-icon">⚙️</i>
+                <span>系统设置</span>
+            </div>
+        </div>
+        <div class="main-content">
+            <iframe id="content-frame" src="screen.html"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // 修改页面切换函数
+        function switchContent(url, element) {
+            try {
+                console.log('切换页面:', url);
+                const iframe = document.getElementById('content-frame');
+                if (!iframe) {
+                    console.error('找不到 iframe 元素');
+                    return;
+                }
+
+                // 显示加载动画
+                showLoading();
+
+                // 清除之前的事件监听
+                if (iframe.onload) iframe.onload = null;
+                if (iframe.onerror) iframe.onerror = null;
+
+                // 添加加载事件
+                iframe.onload = () => {
+                    hideLoading();
+                    updateMenuState(element);
+                };
+
+                // 添加错误处理
+                iframe.onerror = () => {
+                    hideLoading();
+                    showError('页面加载失败');
+                };
+
+                // 置加载超时
+                const loadTimeout = setTimeout(() => {
+                    hideLoading();
+                    showError('加载超时，请重试');
+                }, 5000);
+
+                // 设置新的 src
+                iframe.src = url;
+
+            } catch (error) {
+                console.error('页面切换错误:', error);
+                hideLoading();
+                showError('系统错误');
+            }
+        }
+
+        // 修改初始化函数
+        function initPage() {
+            try {
+                console.log('开始初始化系统...');
+                
+                // 加载保存的 logo
+                const savedLogo = localStorage.getItem('systemLogo');
+                if (savedLogo) {
+                    const logoImg = document.querySelector('.logo');
+                    if (logoImg) {
+                        logoImg.src = savedLogo;
+                    }
+                }
+
+                // 检查必要的DOM元素
+                const contentFrame = document.getElementById('content-frame');
+                if (!contentFrame) {
+                    console.error('找不到内容框架元素');
+                    return;
+                }
+
+                // 设置默认页面
+                contentFrame.src = 'screen.html';
+                
+                // 更新菜单状态
+                const screenMenuItem = document.querySelector('.menu-item.screen');
+                if (screenMenuItem) {
+                    updateMenuState(screenMenuItem);
+                }
+
+                console.log('系统初始化完成');
+
+            } catch (error) {
+                console.error('初始化错误:', error);
+                showError('系统初始化失败，请刷新页面重试');
+            }
+        }
+
+        // 修改页面加载事件
+        document.addEventListener('DOMContentLoaded', initPage);
+
+        // 修改菜单状态更新函数
+        function updateMenuState(element) {
+            if (!element) return;
+            
+            // 移除所有菜单项的激活状态
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+            
+            // 添加当前菜单项的激活状态
+            element.classList.add('active');
+        }
+
+        // 优化加载动画
+        function showLoading() {
+            const loading = document.querySelector('.page-loading') || createLoadingElement();
+            loading.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            const loading = document.querySelector('.page-loading');
+            if (loading) loading.style.display = 'none';
+        }
+
+        function createLoadingElement() {
+            const loading = document.createElement('div');
+            loading.className = 'page-loading';
+            loading.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-text">加载中...</div>
+            `;
+            document.body.appendChild(loading);
+            return loading;
+        }
+
+        // 修改错误提示函数
+        function showError(message) {
+            const error = document.createElement('div');
+            error.className = 'error-message';
+            error.innerHTML = `
+                <div class="error-content">
+                    <div class="error-text">${message}</div>
+                    <button onclick="location.reload()">刷新页面</button>
+                </div>
+            `;
+            document.body.appendChild(error);
+        }
+
+        // 确保 DOM 加载完成后再初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM加载完成，开始初始化...');
+            setTimeout(initPage, 100);  // 添加小延时确保DOM完全加载
+        });
+
+        // 更新时间显示
+        function updateTime() {
+            const timeElement = document.getElementById('currentTime');
+            if (timeElement) {
+                const now = new Date();
+                timeElement.textContent = now.toLocaleString();
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出登录？')) {
+                sessionStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 定时更新时间
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 添加消息监听，用于接收 logo 更新
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'logoUpdated' && event.data.logo) {
+                // 更新顶部 logo
+                const logoImg = document.querySelector('.company-logo');
+                if (logoImg) {
+                    logoImg.src = event.data.logo + '?t=' + new Date().getTime();
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

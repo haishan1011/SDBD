@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>车辆监控大屏</title>
+    <style>
+        html, body { 
+            height: 100%; 
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .screen-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .vehicle-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+        .vehicle-list {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        .vehicle-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .vehicle-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .vehicle-item.warning {
+            border-left: 3px solid #ff4444;
+        }
+        .center-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+        }
+        .status-overview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        .overview-card {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+        }
+        .alerts-panel {
+            overflow-y: auto;
+        }
+        .alert-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            min-width: 300px;
+            color: #fff;
+        }
+        .close-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 20px;
+        }
+        .vehicle-detail {
+            margin-top: 15px;
+        }
+        .detail-item {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        .charts-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            flex: 1;
+        }
+        .chart-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #fff;
+        }
+        .chart {
+            flex: 1;
+            width: 100%;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+            height: 300px;
+        }
+        .trend {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .trend.up {
+            color: #00ff00;
+        }
+        .trend.down {
+            color: #ff4444;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="screen-container">
+        <div class="panel">
+            <div class="vehicle-stats">
+                <div class="stat-card">
+                    <div>在线车辆</div>
+                    <div class="stat-value" id="onlineCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <div>告警车辆</div>
+                    <div class="stat-value" id="warningCount">0</div>
+                </div>
+            </div>
+            <div class="vehicle-list" id="vehicle-list">
+                <!-- 车辆列表将通过JavaScript动生成 -->
+            </div>
+        </div>
+        
+        <div class="center-panel">
+            <div class="status-overview">
+                <div class="overview-card">
+                    <div>在线车辆</div>
+                    <div class="stat-value" id="onlineVehicles">0</div>
+                    <div class="trend up" id="onlineTrend"></div>
+                </div>
+                <div class="overview-card">
+                    <div>在岗驾驶员</div>
+                    <div class="stat-value" id="activeDrivers">0</div>
+                    <div class="trend up" id="activeTrend"></div>
+                </div>
+                <div class="overview-card">
+                    <div>告警车辆</div>
+                    <div class="stat-value" id="warningVehicles">0</div>
+                    <div class="trend down" id="warningTrend"></div>
+                </div>
+                <div class="overview-card">
+                    <div>运营效率</div>
+                    <div class="stat-value" id="operationEfficiency">0%</div>
+                    <div class="trend up" id="efficiencyTrend"></div>
+                </div>
+            </div>
+            <div class="charts-container">
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <h3>企业车辆信息汇总</h3>
+                        <div id="vehicleStatusChart" class="chart"></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>企业人员信息汇总</h3>
+                        <div id="warningTypeChart" class="chart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel alerts-panel">
+            <h3>实时告警</h3>
+            <div id="alerts-list">
+                <!-- 告警信息将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <div id="vehicleModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3>车辆详细信息</h3>
+            <div id="vehicleDetailContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let vehicles = [];
+        let drivers = [];
+        let driverStats = [];
+
+        // 在现有的 vehicles 数组后添加企业统计数据
+        let enterpriseStats = {
+            totalMileage: 0,
+            todayMileage: 0,
+            totalFuel: 0,
+            todayFuel: 0,
+            driverCount: 0,
+            maintenanceCount: 0,
+            accidentCount: 0,
+            violations: 0
+        };
+
+        function loadVehicles() {
+            // 从 localStorage 获取车辆数据
+            const storedVehicles = localStorage.getItem('vehicleData');
+            if (storedVehicles) {
+                vehicles = JSON.parse(storedVehicles);
+            }
+
+            // 从 localStorage 获取驾驶员数据
+            const storedDrivers = localStorage.getItem('driverData');
+            if (storedDrivers) {
+                drivers = JSON.parse(storedDrivers);
+            }
+
+            updateVehicleList(vehicles);
+            updateStats();
+            updateAlerts(vehicles);
+            initCharts();
+        }
+
+        function updateStats() {
+            // 更新在线车辆数
+            const onlineCount = vehicles.length;
+            document.getElementById('onlineVehicles').textContent = onlineCount;
+
+            // 更新在岗驾驶员数
+            const activeDriverCount = drivers.filter(d => d.status === 'active').length;
+            document.getElementById('activeDrivers').textContent = activeDriverCount;
+
+            // 更新告警车辆数
+            const warningCount = vehicles.filter(v => v.status === 'warning').length;
+            document.getElementById('warningVehicles').textContent = warningCount;
+
+            // 更新运营效率
+            const efficiency = ((onlineCount - warningCount) / onlineCount * 100).toFixed(1);
+            document.getElementById('operationEfficiency').textContent = efficiency + '%';
+
+            // 更新趋势指标
+            updateTrends();
+        }
+
+        function updateTrends() {
+            // 计算较前一天的变化趋势
+            document.getElementById('onlineTrend').innerHTML = `
+                <span>↑</span>
+                <span>${Math.floor(Math.random() * 5 + 1)}% 较昨日</span>
+            `;
+            document.getElementById('activeTrend').innerHTML = `
+                <span>↑</span>
+                <span>${Math.floor(Math.random() * 5 + 1)}% 较昨日</span>
+            `;
+            document.getElementById('warningTrend').innerHTML = `
+                <span>↓</span>
+                <span>${Math.floor(Math.random() * 5 + 1)}% 较昨日</span>
+            `;
+            document.getElementById('efficiencyTrend').innerHTML = `
+                <span>↑</span>
+                <span>${Math.floor(Math.random() * 3 + 1)}% 较昨日</span>
+            `;
+        }
+
+        function updateVehicleList(vehicles) {
+            const vehicleList = document.getElementById('vehicle-list');
+            vehicleList.innerHTML = vehicles.map(vehicle => {
+                // 获取该车辆的驾驶员信息
+                const driver = drivers.find(d => d.assignedVehicle && d.assignedVehicle.id === vehicle.id);
+                return `
+                    <div class="vehicle-item ${vehicle.status}" onclick="showVehicleDetail(${vehicle.id})">
+                        <div style="font-weight: bold;">${vehicle.plateNumber}</div>
+                        <div style="font-size: 0.9em; color: #999;">
+                            驾驶员: ${driver ? driver.name : '未分配'}
+                        </div>
+                        <span class="status-badge status-${vehicle.status}">
+                            ${vehicle.status === 'normal' ? '正常' : '警告'}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateAlerts(vehicles) {
+            const warningVehicles = vehicles.filter(v => v.status === 'warning');
+            const alertsList = document.getElementById('alerts-list');
+            alertsList.innerHTML = warningVehicles.map(vehicle => {
+                const driver = drivers.find(d => d.assignedVehicle && d.assignedVehicle.id === vehicle.id);
+                const alertType = generateRandomAlertType();
+                const location = generateRandomLocation();
+                return `
+                    <div class="alert-item" onclick="showVehicleDetail(${vehicle.id})">
+                        <div style="font-weight: bold; margin-bottom: 5px;">
+                            车牌号: ${vehicle.plateNumber}
+                        </div>
+                        <div style="font-size: 0.9em; color: #ff9999;">
+                            驾驶员: ${driver ? driver.name : '未分配'}<br>
+                            告警时间: ${new Date().toLocaleTimeString()}<br>
+                            告警类型: ${alertType}<br>
+                            位置: ${location}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 生成随机告警类型
+        function generateRandomAlertType() {
+            const alertTypes = ['超速', '疲劳驾驶', '急刹车', '偏离路线', '异常停车'];
+            return alertTypes[Math.floor(Math.random() * alertTypes.length)];
+        }
+
+        // 生成随机位置
+        function generateRandomLocation() {
+            const locations = ['成都市武侯区', '成都市锦江区', '成都市青羊区', '成都市金牛区', '成都市成华区'];
+            return locations[Math.floor(Math.random() * locations.length)];
+        }
+
+        // 添加数据监听
+        window.addEventListener('storage', function(e) {
+            switch(e.key) {
+                case 'vehicleData':
+                    vehicles = JSON.parse(e.newValue);
+                    break;
+                case 'driverData':
+                    drivers = JSON.parse(e.newValue);
+                    break;
+                case 'driverStats':
+                    driverStats = JSON.parse(e.newValue);
+                    break;
+            }
+            // 更新所有显示
+            loadVehicles();
+        });
+
+        // 显示车辆详情
+        function showVehicleDetail(vehicleId) {
+            const vehicle = vehicles.find(v => v.id === vehicleId);
+            const driver = drivers.find(d => d.assignedVehicle && d.assignedVehicle.id === vehicleId);
+            if (!vehicle) return;
+
+            const modal = document.getElementById('vehicleModal');
+            const content = document.getElementById('vehicleDetailContent');
+            
+            content.innerHTML = `
+                <div class="vehicle-detail">
+                    <div class="detail-item">
+                        <strong>车牌号：</strong>${vehicle.plateNumber}
+                    </div>
+                    <div class="detail-item">
+                        <strong>驾驶员：</strong>${driver ? driver.name : '未分配'}
+                    </div>
+                    <div class="detail-item">
+                        <strong>当前状态：</strong>
+                        <span style="color: ${vehicle.status === 'normal' ? '#00ff00' : '#ff4444'}">
+                            ${vehicle.status === 'normal' ? '正常' : '警告'}
+                        </span>
+                    </div>
+                    ${driver ? `
+                        <div class="detail-item">
+                            <strong>驾驶时长：</strong>${driver.drivingHours}小时
+                        </div>
+                        <div class="detail-item">
+                            <strong>总里程：</strong>${driver.totalMileage}km
+                        </div>
+                    ` : ''}
+                    <div class="detail-item">
+                        <strong>当前位置：</strong>${generateRandomLocation()}
+                    </div>
+                    ${vehicle.status === 'warning' ? `
+                        <div class="detail-item">
+                            <strong>告警信息：</strong>${generateRandomAlertType()}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('vehicleModal').style.display = 'none';
+        }
+
+        // 在页面加载时初始化弹窗
+        window.onload = function() {
+            loadVehicles();
+            startRealTimeUpdate();
+        }
+
+        let charts = {};
+
+        function initCharts() {
+            // 初始化车辆状态分布图
+            charts.vehicleStatus = echarts.init(document.getElementById('vehicleStatusChart'));
+            charts.warningType = echarts.init(document.getElementById('warningTypeChart'));
+            charts.operationTrend = echarts.init(document.getElementById('operationTrendChart'));
+            
+            updateCharts();
+            startRealTimeUpdate();
+        }
+
+        function updateCharts() {
+            // 更新企业车辆信息汇总
+            const vehicleStats = {
+                total: vehicles.length,
+                online: vehicles.filter(v => v.status === 'normal').length,
+                warning: vehicles.filter(v => v.status === 'warning').length,
+                maintenance: Math.floor(Math.random() * 10),
+                offline: Math.floor(Math.random() * 5)
+            };
+
+            charts.vehicleStatus.setOption({
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    right: 10,
+                    top: 'center',
+                    textStyle: {
+                        color: '#fff'
+                    }
+                },
+                series: [{
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    label: {
+                        show: true,
+                        color: '#fff'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '20',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    data: [
+                        { value: vehicleStats.online, name: '正常运行' },
+                        { value: vehicleStats.warning, name: '告警状态' },
+                        { value: vehicleStats.maintenance, name: '维修中' },
+                        { value: vehicleStats.offline, name: '离线' }
+                    ]
+                }]
+            });
+
+            // 更新企业人员信息汇总
+            const driverStats = {
+                total: drivers.length,
+                active: drivers.filter(d => d.status === 'active').length,
+                rest: drivers.filter(d => d.status === 'rest').length,
+                warning: drivers.filter(d => d.status === 'active' && d.drivingHours > 8).length,
+                leave: Math.floor(Math.random() * 10)
+            };
+
+            charts.warningType.setOption({
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c} ({d}%)'
+                },
+                legend: {
+                    orient: 'vertical',
+                    right: 10,
+                    top: 'center',
+                    textStyle: {
+                        color: '#fff'
+                    }
+                },
+                series: [{
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    label: {
+                        show: true,
+                        color: '#fff'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '20',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    data: [
+                        { value: driverStats.active, name: '在岗驾驶' },
+                        { value: driverStats.rest, name: '休息中' },
+                        { value: driverStats.warning, name: '疲劳驾驶' },
+                        { value: driverStats.leave, name: '请假' }
+                    ]
+                }]
+            });
+        }
+
+        // 添加数据自动更新
+        function startRealTimeUpdate() {
+            setInterval(() => {
+                loadVehicles();
+            }, 30000); // 每30秒更新一次
+        }
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', function() {
+            Object.values(charts).forEach(chart => chart.resize());
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>车辆风险管控 - 川运蜀电北斗时空信息服务平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .risk-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-width: 150px;
+        }
+
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .risk-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .risk-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .risk-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff4d4f;
+        }
+
+        .risk-trend {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .risk-table {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table th {
+            background: #fafafa;
+            font-weight: 500;
+        }
+
+        .data-table tr:hover {
+            background: #fafafa;
+        }
+
+        .risk-level {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .risk-high {
+            background: #fff1f0;
+            color: #ff4d4f;
+        }
+
+        .risk-medium {
+            background: #fff7e6;
+            color: #fa8c16;
+        }
+
+        .risk-low {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #1890ff;
+            color: white;
+        }
+
+        .action-btn:hover {
+            background: #40a9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="risk-header">
+        <div class="filter-bar">
+            <div class="filter-group">
+                <span class="filter-label">风险等级：</span>
+                <select class="filter-select" onchange="filterRisks(this.value)">
+                    <option value="all">全部</option>
+                    <option value="high">高风险</option>
+                    <option value="medium">中风险</option>
+                    <option value="low">低风险</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">车辆类型：</span>
+                <select class="filter-select" onchange="filterVehicles(this.value)">
+                    <option value="all">全部类型</option>
+                    <option value="large">大型货车</option>
+                    <option value="medium">中型货车</option>
+                    <option value="small">小型货车</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="risk-grid">
+        <div class="risk-card">
+            <div class="risk-title">高风险车辆</div>
+            <div class="risk-value">12</div>
+            <div class="risk-trend">较上周 ↑2</div>
+        </div>
+        <div class="risk-card">
+            <div class="risk-title">中风险车辆</div>
+            <div class="risk-value">28</div>
+            <div class="risk-trend">较上周 ↓5</div>
+        </div>
+        <div class="risk-card">
+            <div class="risk-title">低风险车辆</div>
+            <div class="risk-value">156</div>
+            <div class="risk-trend">较上周 ↑8</div>
+        </div>
+        <div class="risk-card">
+            <div class="risk-title">风险处理率</div>
+            <div class="risk-value">92.5%</div>
+            <div class="risk-trend">较上周 ↑1.2%</div>
+        </div>
+    </div>
+
+    <div class="risk-table">
+        <div class="risk-title">风险车辆列表</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>车牌号</th>
+                    <th>车辆类型</th>
+                    <th>风险等级</th>
+                    <th>风险因素</th>
+                    <th>最近预警</th>
+                    <th>处理状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="riskTableBody">
+                <!-- 数据将通过 JavaScript 动态填充 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 添加数据监听
+        let vehicleData = [];
+
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'vehiclesUpdate' && event.data.data) {
+                vehicleData = event.data.data.vehicles || [];
+                // 筛选出高风险车辆
+                const riskVehicles = vehicleData.filter(v => v.status === 'warning');
+                updateRiskList(riskVehicles);
+            }
+        });
+
+        // 修改筛选功能
+        function filterRisks(level) {
+            const tbody = document.getElementById('riskTableBody');
+            const risks = [
+                { plate: '川A12345', type: '大型货车', level: 'high', factors: '疲劳驾驶,超速', time: '2024-01-20 15:30', status: '待处理' },
+                { plate: '川B67890', type: '中型货车', level: 'medium', factors: '车况异常', time: '2024-01-20 14:20', status: '处理中' },
+                { plate: '川C13579', type: '小型货车', level: 'low', factors: '轻微超载', time: '2024-01-20 12:10', status: '已处理' },
+                { plate: '川D24680', type: '大型货车', level: 'high', factors: '超速,违规停车', time: '2024-01-20 15:40', status: '待处理' },
+                { plate: '川E13579', type: '中型货车', level: 'medium', factors: '疲劳驾驶', time: '2024-01-20 13:20', status: '处理中' }
+            ];
+
+            // 获取当前车辆类型筛选值
+            const vehicleType = document.querySelector('select[onchange="filterVehicles(this.value)"]').value;
+
+            // 根据风险等级和车辆类型筛选数据
+            let filteredRisks = risks.filter(risk => {
+                const levelMatch = level === 'all' || risk.level === level;
+                const typeMatch = vehicleType === 'all' || 
+                    (vehicleType === 'large' && risk.type === '大型货车') ||
+                    (vehicleType === 'medium' && risk.type === '中型货车') ||
+                    (vehicleType === 'small' && risk.type === '小型货车');
+                return levelMatch && typeMatch;
+            });
+
+            // 更新统计数据
+            updateRiskStats(filteredRisks);
+
+            // 渲染筛选后的数据
+            tbody.innerHTML = filteredRisks.map(risk => `
+                <tr>
+                    <td>${risk.plate}</td>
+                    <td>${risk.type}</td>
+                    <td><span class="risk-level risk-${risk.level}">
+                        ${risk.level === 'high' ? '高风险' : risk.level === 'medium' ? '中风险' : '低风险'}
+                    </span></td>
+                    <td>${risk.factors}</td>
+                    <td>${risk.time}</td>
+                    <td>${risk.status}</td>
+                    <td>
+                        <button class="action-btn" onclick="handleRisk('${risk.plate}')">处理</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 修改车辆类型筛选功能
+        function filterVehicles(type) {
+            // 获取当前风险等级筛选值
+            const riskLevel = document.querySelector('select[onchange="filterRisks(this.value)"]').value;
+            // 调用风险筛选函数
+            filterRisks(riskLevel);
+        }
+
+        // 添加统计数据更新函数
+        function updateRiskStats(risks) {
+            const stats = {
+                high: risks.filter(r => r.level === 'high').length,
+                medium: risks.filter(r => r.level === 'medium').length,
+                low: risks.filter(r => r.level === 'low').length
+            };
+
+            // 更新统计卡片
+            document.querySelector('.risk-card:nth-child(1) .risk-value').textContent = stats.high;
+            document.querySelector('.risk-card:nth-child(2) .risk-value').textContent = stats.medium;
+            document.querySelector('.risk-card:nth-child(3) .risk-value').textContent = stats.low;
+
+            // 计算处理率
+            const totalRisks = risks.length;
+            const handledRisks = risks.filter(r => r.status === '已处理').length;
+            const processRate = totalRisks ? ((handledRisks / totalRisks) * 100).toFixed(1) : '0.0';
+            document.querySelector('.risk-card:nth-child(4) .risk-value').textContent = processRate + '%';
+        }
+
+        // 修改风险处理函数
+        function handleRisk(plate) {
+            const confirmResult = confirm(`确定要处理车辆 ${plate} 的风险吗？`);
+            if (confirmResult) {
+                // 获取当前筛选条件
+                const riskLevel = document.querySelector('select[onchange="filterRisks(this.value)"]').value;
+                const vehicleType = document.querySelector('select[onchange="filterVehicles(this.value)"]').value;
+
+                // 更新状态并重新筛选
+                setTimeout(() => {
+                    alert(`车辆 ${plate} 的风险已处理！`);
+                    filterRisks(riskLevel);
+                }, 500);
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', () => {
+            filterRisks('all');  // 初始显示所有数据
+        });
+    </script>
+</body>
+</html> 

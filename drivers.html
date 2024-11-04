@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>驾驶员管理</title>
+    <style>
+        html, body { 
+            height: 100%; 
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+        }
+        .page-title {
+            margin: 0 0 20px 0;
+            padding: 10px 0;
+            font-size: 24px;
+            color: #333;
+            border-bottom: 2px solid #1a73e8;
+        }
+        .header {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            padding: 8px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .driver-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .driver-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            transition: transform 0.2s;
+        }
+        .driver-card:hover {
+            transform: translateY(-5px);
+        }
+        .driver-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .status-active {
+            background: #e6f7e6;
+            color: #28a745;
+        }
+        .status-rest {
+            background: #fff2f0;
+            color: #dc3545;
+        }
+        .driver-info {
+            margin-top: 10px;
+        }
+        .info-item {
+            margin: 5px 0;
+            color: #666;
+        }
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .driver-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #666;
+            margin-right: 15px;
+        }
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        .filter-label {
+            color: #666;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 60px;
+        }
+        .search-box, .filter-select {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+        .search-box:focus, .filter-select:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+            outline: none;
+        }
+        .filter-select {
+            padding-right: 30px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            cursor: pointer;
+        }
+        .active-filters {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .filter-tag {
+            background: #e3f2fd;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #1a73e8;
+            border: 1px solid #bbdefb;
+        }
+        .filter-tag .remove {
+            cursor: pointer;
+            color: #1a73e8;
+            font-weight: bold;
+            font-size: 16px;
+            line-height: 1;
+        }
+        .filter-tag .remove:hover {
+            color: #dc3545;
+        }
+        .filter-summary {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">驾驶员管理</h1>
+        
+        <div class="header">
+            <div class="filter-controls">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <span class="filter-label">搜索：</span>
+                        <input type="text" class="search-box" placeholder="姓名/工号/车牌..." id="searchInput">
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">状态：</span>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="all">全部状态</option>
+                            <option value="active">在岗</option>
+                            <option value="rest">休息</option>
+                            <option value="warning">疲劳驾驶</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">年龄：</span>
+                        <select id="ageFilter" class="filter-select">
+                            <option value="all">全部年龄</option>
+                            <option value="30-40">30-40岁</option>
+                            <option value="41-50">41-50岁</option>
+                            <option value="51-60">51-60岁</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <span class="filter-label">里程：</span>
+                        <select id="mileageFilter" class="filter-select">
+                            <option value="all">全部里程</option>
+                            <option value="0-10000">0-1万公里</option>
+                            <option value="10000-50000">1-5万公里</option>
+                            <option value="50000+">5万公里以上</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">排序：</span>
+                        <select id="sortBy" class="filter-select">
+                            <option value="default">默认排序</option>
+                            <option value="name">姓名</option>
+                            <option value="age">年龄</option>
+                            <option value="mileage">总里程</option>
+                            <option value="drivingHours">驾驶时长</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <!-- 预留一个位置保持对称 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-value" id="totalDrivers">0</div>
+                <div class="stat-label">总驾驶员数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeDrivers">0</div>
+                <div class="stat-label">在岗驾驶员</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="restDrivers">0</div>
+                <div class="stat-label">休息驾驶员</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="warningDrivers">0</div>
+                <div class="stat-label">疲劳驾驶</div>
+            </div>
+        </div>
+
+        <div class="driver-grid" id="driverGrid">
+            <!-- 驾驶员卡片将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        // 修改驾驶员数据数组
+        const driverNames = [
+            // 姓氏
+            '张', '王', '李', '赵', '刘', '陈', '杨', '周', '吴', '郑', 
+            '孙', '马', '朱', '胡', '郭', '何', '高', '林', '郑', '谢',
+            '徐', '杜', '冯', '于', '董', '萧', '程', '曹', '袁', '邓',
+            '许', '傅', '沈', '曾', '彭', '吕', '苏', '卢', '蒋', '蔡',
+            // 名字常用字
+            '伟', '强', '明', '建', '军', '平', '杰', '涛', '超', '勇',
+            '军', '洋', '勇', '帆', '锋', '磊', '波', '鹏', '斌', '浩',
+            '凯', '华', '晖', '新', '志', '国', '建', '华', '亮', '飞'
+        ];
+
+        // 生成200个不重复的驾���员姓名
+        function generateDriverNames(count) {
+            const names = new Set();
+            while (names.size < count) {
+                const firstName = driverNames.slice(0, 40)[Math.floor(Math.random() * 40)];
+                const lastName = driverNames.slice(40)[Math.floor(Math.random() * 40)];
+                names.add(firstName + lastName);
+            }
+            return Array.from(names);
+        }
+
+        let drivers = [];
+        let vehicles = [];
+
+        let filterState = {
+            search: '',
+            status: 'all',
+            age: 'all',
+            mileage: 'all',
+            sortBy: 'default'
+        };
+
+        function loadData() {
+            // 从localStorage获取车辆数据
+            const storedVehicles = localStorage.getItem('vehicleData');
+            if (storedVehicles) {
+                vehicles = JSON.parse(storedVehicles);
+            }
+
+            // 生成200个驾驶员
+            const driverNamesList = generateDriverNames(200);
+            
+            // 生成驾驶员数据，确保每个驾驶员都有唯一的车辆
+            const availableVehicles = [...vehicles];
+            drivers = driverNamesList.map((name, index) => {
+                const isActive = Math.random() > 0.3; // 70%概率在岗
+                let assignedVehicle = null;
+                
+                if (isActive && availableVehicles.length > 0) {
+                    // 随机分配一个未分配的车辆
+                    const randomIndex = Math.floor(Math.random() * availableVehicles.length);
+                    assignedVehicle = availableVehicles.splice(randomIndex, 1)[0];
+                }
+                
+                return {
+                    id: index + 1,
+                    name: name,
+                    age: Math.floor(Math.random() * 20 + 30), // 30-50岁
+                    status: isActive ? 'active' : 'rest',
+                    drivingHours: isActive ? Math.floor(Math.random() * 12) : 0,
+                    totalMileage: Math.floor(Math.random() * 50000 + 10000),
+                    assignedVehicle: assignedVehicle,
+                    licenseNo: `A${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`,
+                    phone: `1${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`
+                };
+            });
+
+            // 保存驾驶员数据到 localStorage
+            localStorage.setItem('driverData', JSON.stringify(drivers));
+
+            updateDriverGrid();
+            updateStats();
+        }
+
+        function updateDriverGrid() {
+            const grid = document.getElementById('driverGrid');
+            grid.innerHTML = drivers.map(driver => `
+                <div class="driver-card">
+                    <div class="driver-header">
+                        <div style="display: flex; align-items: center;">
+                            <div class="driver-avatar">${driver.name.charAt(0)}</div>
+                            <div>
+                                <h3 style="margin: 0;">${driver.name}</h3>
+                                <div style="color: #666; font-size: 12px;">工号: ${driver.id}</div>
+                            </div>
+                        </div>
+                        <span class="status-badge status-${driver.status}">
+                            ${driver.status === 'active' ? '在岗' : '休息'}
+                        </span>
+                    </div>
+                    <div class="driver-info">
+                        <div class="info-item">
+                            <strong>驾驶证号：</strong>${driver.licenseNo}
+                        </div>
+                        <div class="info-item">
+                            <strong>联系电话：</strong>${driver.phone}
+                        </div>
+                        <div class="info-item">
+                            <strong>年龄：</strong>${driver.age}岁
+                        </div>
+                        <div class="info-item">
+                            <strong>总里程：</strong>${driver.totalMileage}km
+                        </div>
+                        ${driver.assignedVehicle ? `
+                            <div class="info-item">
+                                <strong>当前车辆：</strong>${driver.assignedVehicle.plateNumber}
+                            </div>
+                            <div class="info-item">
+                                <strong>已驾驶：</strong>${driver.drivingHours}小时
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            // 总驾驶员数应该是实际生成的驾驶员数量，而不是名字数组的长度
+            document.getElementById('totalDrivers').textContent = drivers.length;
+
+            // 在岗驾驶员数
+            const activeDrivers = drivers.filter(d => d.status === 'active').length;
+            document.getElementById('activeDrivers').textContent = activeDrivers;
+
+            // 休息驾驶员数
+            const restDrivers = drivers.filter(d => d.status === 'rest').length;
+            document.getElementById('restDrivers').textContent = restDrivers;
+
+            // 疲劳驾驶数
+            const warningDrivers = drivers.filter(d => d.status === 'active' && d.drivingHours > 8).length;
+            document.getElementById('warningDrivers').textContent = warningDrivers;
+
+            // 更新 localStorage 中的驾驶员统计数据
+            const driverStats = {
+                total: drivers.length,  // 使用实际的驾驶员数量
+                active: activeDrivers,
+                rest: restDrivers,
+                warning: warningDrivers
+            };
+            localStorage.setItem('driverStats', JSON.stringify(driverStats));
+        }
+
+        function setupFilters() {
+            // 搜索框事件监听
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function() {
+                filterState.search = this.value.toLowerCase();
+                applyFilters();
+            });
+
+            // 状态筛选
+            const statusFilter = document.getElementById('statusFilter');
+            statusFilter.addEventListener('change', function() {
+                filterState.status = this.value;
+                applyFilters();
+            });
+
+            // 年龄筛选
+            const ageFilter = document.getElementById('ageFilter');
+            ageFilter.addEventListener('change', function() {
+                filterState.age = this.value;
+                applyFilters();
+            });
+
+            // 里程筛选
+            const mileageFilter = document.getElementById('mileageFilter');
+            mileageFilter.addEventListener('change', function() {
+                filterState.mileage = this.value;
+                applyFilters();
+            });
+
+            // 排序方式
+            const sortBy = document.getElementById('sortBy');
+            sortBy.addEventListener('change', function() {
+                filterState.sortBy = this.value;
+                applyFilters();
+            });
+        }
+
+        function applyFilters() {
+            let filteredDrivers = [...drivers];
+
+            // 应用搜索过滤
+            if (filterState.search) {
+                filteredDrivers = filteredDrivers.filter(driver => 
+                    driver.name.toLowerCase().includes(filterState.search.toLowerCase()) ||
+                    driver.licenseNo.toLowerCase().includes(filterState.search.toLowerCase()) ||
+                    (driver.assignedVehicle && driver.assignedVehicle.plateNumber.toLowerCase().includes(filterState.search.toLowerCase()))
+                );
+            }
+
+            // 应用状态过滤
+            if (filterState.status !== 'all') {
+                if (filterState.status === 'warning') {
+                    filteredDrivers = filteredDrivers.filter(driver => 
+                        driver.status === 'active' && driver.drivingHours > 8
+                    );
+                } else {
+                    filteredDrivers = filteredDrivers.filter(driver => 
+                        driver.status === filterState.status
+                    );
+                }
+            }
+
+            // 应用年龄过滤
+            if (filterState.age !== 'all') {
+                const [minAge, maxAge] = filterState.age.split('-').map(Number);
+                filteredDrivers = filteredDrivers.filter(driver => {
+                    if (maxAge) {
+                        return driver.age >= minAge && driver.age <= maxAge;
+                    } else {
+                        return driver.age >= minAge;
+                    }
+                });
+            }
+
+            // 应用里程过滤
+            if (filterState.mileage !== 'all') {
+                const [minMileage, maxMileage] = filterState.mileage.split('-').map(str => {
+                    if (str.endsWith('+')) return Infinity;
+                    return Number(str);
+                });
+                filteredDrivers = filteredDrivers.filter(driver => 
+                    driver.totalMileage >= minMileage && driver.totalMileage < maxMileage
+                );
+            }
+
+            // 应用排序
+            if (filterState.sortBy !== 'default') {
+                filteredDrivers.sort((a, b) => {
+                    switch (filterState.sortBy) {
+                        case 'name':
+                            return a.name.localeCompare(b.name);
+                        case 'age':
+                            return a.age - b.age;
+                        case 'mileage':
+                            return b.totalMileage - a.totalMileage;
+                        case 'drivingHours':
+                            return (b.status === 'active' ? b.drivingHours : 0) - 
+                                   (a.status === 'active' ? a.drivingHours : 0);
+                        default:
+                            return 0;
+                    }
+                });
+            }
+
+            // 更新显示筛选后的驾驶员数量
+            const filteredCount = filteredDrivers.length;
+            
+            // 更新驾驶员网格
+            updateDriverGrid(filteredDrivers);
+            
+            // 更新筛选标签，包含筛选结果数量
+            updateFilterTags(filteredCount);
+            
+            // 更新统计信息
+            updateFilteredStats(filteredDrivers);
+        }
+
+        // 更新筛选后的统计信息
+        function updateFilteredStats(filteredDrivers) {
+            document.getElementById('totalDrivers').textContent = drivers.length;
+            document.getElementById('activeDrivers').textContent = 
+                filteredDrivers.filter(d => d.status === 'active').length;
+            document.getElementById('restDrivers').textContent = 
+                filteredDrivers.filter(d => d.status === 'rest').length;
+            document.getElementById('warningDrivers').textContent = 
+                filteredDrivers.filter(d => d.status === 'active' && d.drivingHours > 8).length;
+        }
+
+        // 更新筛选标签，添加筛选结果数量
+        function updateFilterTags(filteredCount) {
+            const activeFilters = [];
+            
+            if (filterState.search) {
+                activeFilters.push({
+                    type: 'search',
+                    label: `搜索: ${filterState.search}`,
+                    value: filterState.search
+                });
+            }
+            
+            if (filterState.status !== 'all') {
+                const statusLabels = {
+                    active: '在岗',
+                    rest: '休息',
+                    warning: '疲劳驾驶'
+                };
+                activeFilters.push({
+                    type: 'status',
+                    label: `状态: ${statusLabels[filterState.status]}`,
+                    value: filterState.status
+                });
+            }
+            
+            if (filterState.age !== 'all') {
+                activeFilters.push({
+                    type: 'age',
+                    label: `年龄: ${filterState.age}岁`,
+                    value: filterState.age
+                });
+            }
+
+            if (filterState.mileage !== 'all') {
+                activeFilters.push({
+                    type: 'mileage',
+                    label: `里程: ${filterState.mileage}`,
+                    value: filterState.mileage
+                });
+            }
+
+            let tagsHtml = '';
+            if (activeFilters.length > 0) {
+                tagsHtml = `
+                    <div class="active-filters">
+                        ${activeFilters.map(filter => `
+                            <div class="filter-tag">
+                                ${filter.label}
+                                <span class="remove" onclick="removeFilter('${filter.type}', '${filter.value}')">&times;</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="filter-summary">
+                        当前显示: ${filteredCount} 名驾驶员
+                        ${filterState.sortBy !== 'default' ? ` | 按${getSortLabel(filterState.sortBy)}排序` : ''}
+                    </div>
+                `;
+            }
+
+            const filterTagsContainer = document.querySelector('.active-filters-container') || 
+                document.createElement('div');
+            filterTagsContainer.className = 'active-filters-container';
+            filterTagsContainer.innerHTML = tagsHtml;
+            
+            if (!document.querySelector('.active-filters-container')) {
+                document.querySelector('.header').insertAdjacentElement('afterend', filterTagsContainer);
+            }
+        }
+
+        function getSortLabel(sortBy) {
+            const sortLabels = {
+                name: '姓名',
+                age: '年龄',
+                mileage: '总里程',
+                drivingHours: '驾驶时长'
+            };
+            return sortLabels[sortBy] || '';
+        }
+
+        function removeFilter(type, value) {
+            switch (type) {
+                case 'search':
+                    filterState.search = '';
+                    document.getElementById('searchInput').value = '';
+                    break;
+                case 'status':
+                    filterState.status = 'all';
+                    document.getElementById('statusFilter').value = 'all';
+                    break;
+                case 'age':
+                    filterState.age = 'all';
+                    document.getElementById('ageFilter').value = 'all';
+                    break;
+                case 'mileage':
+                    filterState.mileage = 'all';
+                    document.getElementById('mileageFilter').value = 'all';
+                    break;
+            }
+            applyFilters();
+        }
+
+        // 添加数据同步监听
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'vehicleData') {
+                // 车辆数据更新时重新加载数据
+                loadData();
+            }
+        });
+
+        window.onload = function() {
+            loadData();
+            setupFilters();
+        };
+    </script>
+</body>
+</html> 
